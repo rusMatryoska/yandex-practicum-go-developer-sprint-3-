@@ -11,9 +11,9 @@ import (
 	"os"
 	"strings"
 
-	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/handlers"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 )
 
 const (

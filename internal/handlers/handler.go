@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 )
 
 type StorageHandlers struct {

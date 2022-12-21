@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -178,8 +179,14 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	url, err := sh.storage.SearchURL(id)
 	if err != nil {
-		http.Error(w, "There is no URL with this ID", http.StatusNotFound)
-		return
+		if errors.Is(m.NewStorageError(m.ErrGone, "410"), err) {
+			w.WriteHeader(http.StatusGone)
+			w.Write([]byte(url))
+			return
+		} else {
+			http.Error(w, "There is no URL with this ID", http.StatusNotFound)
+			return
+		}
 	} else {
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -210,6 +217,23 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
+func (sh StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value("user").(string)
+	if user == "" {
+		user = m.GetCookie(r, m.CookieUserID)
+	}
+
+	urls, err := ioutil.ReadAll(r.Body)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+	sh.storage.DeleteForUser(string(urls), user)
+}
+
 func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 
 	router := mux.NewRouter()
@@ -227,6 +251,8 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 	router.HandleFunc("/ping", handlers.PingDB).Methods("GET")
 	router.HandleFunc("/{id}", handlers.GetURLHandler).Methods("GET")
 	router.HandleFunc("/api/user/urls", handlers.GetAllURLsHandler).Methods("GET")
+
+	router.HandleFunc("/api/user/urls", handlers.DeleteHandler).Methods("DELETE")
 
 	return router
 }

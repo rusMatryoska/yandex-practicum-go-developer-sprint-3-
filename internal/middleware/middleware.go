@@ -22,6 +22,7 @@ const (
 var (
 	ErrConflict  = errors.New(`409 Conflict`)
 	ErrNoContent = errors.New(`204 No Content`)
+	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
 )
 

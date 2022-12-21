@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ type Storage interface {
 	SearchURL(id int) (string, error)
 	GetAllURLForUser(user string) ([]middleware.JSONStructForAuth, error)
 	Ping() error
+	DeleteForUser(urls string, user string)
 }
 
 //MEMORY PART//
@@ -94,6 +96,9 @@ func (m *Memory) GetAllURLForUser(user string) ([]middleware.JSONStructForAuth, 
 
 func (m *Memory) Ping() error {
 	return errors.New("there is no connection to DB")
+}
+
+func (m *Memory) DeleteForUser(urls string, user string) {
 }
 
 //FILE PART//
@@ -189,6 +194,9 @@ func (f *File) Ping() error {
 	return errors.New("there is no connection to DB")
 }
 
+func (f *File) DeleteForUser(urls string, user string) {
+}
+
 //DATABASE PART//
 
 type Database struct {
@@ -240,7 +248,7 @@ func (db *Database) AddURL(url string, user string) (string, error) {
 	var newID int64
 
 	row := db.ConnPool.QueryRow(db.CTX,
-		"INSERT INTO public.storage (full_url, user_id) VALUES ($1, $2) RETURNING id", url, user)
+		"INSERT INTO public.storage (full_url, user_id, actual) VALUES ($1, $2, $3) RETURNING id", url, user, true)
 	if err := row.Scan(&newID); err != nil {
 		id, err := db.SearchID(url)
 		if err == nil {
@@ -255,7 +263,9 @@ func (db *Database) AddURL(url string, user string) (string, error) {
 
 func (db *Database) SearchURL(id int) (string, error) {
 	var url string
-	query := fmt.Sprintf("select full_url from %s.%s where id = %v", schema, table, id)
+	var actual bool
+
+	query := fmt.Sprintf("select full_url, actual from %s.%s where id = %v", schema, table, id)
 	row, err := db.GetRows(query)
 	if err != nil {
 		return "", err
@@ -273,9 +283,20 @@ func (db *Database) SearchURL(id int) (string, error) {
 		} else {
 			url = value[0].(string)
 		}
+
+		if value[1] == nil {
+			actual = true
+		} else {
+			actual = value[1].(bool)
+		}
+
 	}
 
-	return url, nil
+	if !actual {
+		return url, middleware.ErrGone
+	} else {
+		return url, nil
+	}
 
 }
 
@@ -345,4 +366,12 @@ func (db *Database) SearchID(url string) (int, error) {
 
 	return id, nil
 
+}
+
+func (db *Database) DeleteForUser(urls string, user string) {
+	urls = strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
+		"'", "", -1)
+	sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
+		schema, table, user, urls)
+	db.ConnPool.Exec(db.CTX, sql)
 }

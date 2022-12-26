@@ -65,7 +65,7 @@ func (sh StorageHandlers) PostAddURLHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	url := string(urlBytes)
-	user := r.Context().Value("user").(string)
+	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
 	}
@@ -92,7 +92,7 @@ func (sh StorageHandlers) ShortenBatchHandler(w http.ResponseWriter, r *http.Req
 		batchRequestList  []m.JSONBatchRequest
 		batchResponseList []m.JSONBatchResponse
 	)
-	user := r.Context().Value("user").(string)
+	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
 	}
@@ -140,7 +140,7 @@ func (sh StorageHandlers) ShortenHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "failed read request", http.StatusInternalServerError)
 		return
 	}
-	user := r.Context().Value("user").(string)
+	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
 	}
@@ -196,7 +196,7 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(string)
+	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
 	}
@@ -218,7 +218,7 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (sh StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value("user").(string)
+	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
 	}

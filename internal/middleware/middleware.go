@@ -171,5 +171,3 @@ func (s *MiddlewareStruct) CheckAuth(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-//type RequestIDKey struct{}

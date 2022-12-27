@@ -369,8 +369,8 @@ func (db *Database) SearchID(url string) (int, error) {
 }
 
 func (db *Database) DeleteForUser(urls string, user string) {
-	urls = strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
-		"'", "", -1)
+	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
+		"'", "", -1), "\"", "", -1)
 	sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
 		schema, table, user, urls)
 	db.ConnPool.Exec(db.CTX, sql)

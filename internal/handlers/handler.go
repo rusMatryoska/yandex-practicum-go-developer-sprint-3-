@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -223,7 +222,7 @@ func (sh StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) 
 		user = m.GetCookie(r, m.CookieUserID)
 	}
 
-	urls, err := ioutil.ReadAll(r.Body)
+	urls, err := io.ReadAll(r.Body)
 
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {

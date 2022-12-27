@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 const (
@@ -36,6 +37,8 @@ type MiddlewareStruct struct {
 	SecretKey []byte
 	BaseURL   string
 	Server    string
+	MU        sync.Mutex
+	CH        chan ChanDelete
 }
 
 type JSONStructForAuth struct {
@@ -65,6 +68,11 @@ type JSONBatchRequest struct {
 type JSONBatchResponse struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortenURL    string `json:"short_url"`
+}
+
+type ChanDelete struct {
+	User string
+	URLS string
 }
 
 func GenerateRandom(size int) []byte {

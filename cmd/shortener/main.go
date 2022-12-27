@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	command = "up"
-	dir     = "internal/migrations"
+	command    = "up"
+	dir        = "internal/migrations"
+	bufferChan = 10
 )
 
 func main() {
@@ -49,6 +50,7 @@ func main() {
 		SecretKey: middleware.SecretKey,
 		BaseURL:   *baseURL,
 		Server:    *server,
+		CH:        make(chan middleware.ChanDelete, bufferChan),
 	}
 
 	if *connStr != "" {
@@ -92,6 +94,10 @@ func main() {
 			}
 		}
 		st = storage.Storage(DBItem)
+
+		go func() {
+			st.DeleteForUser(mwItem.CH)
+		}()
 
 	} else if *connStr == "" && *filePath != "" {
 		log.Println("WARNING: saving will be done through file.")

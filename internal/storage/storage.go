@@ -28,7 +28,7 @@ type Storage interface {
 	SearchURL(id int) (string, error)
 	GetAllURLForUser(user string) ([]middleware.JSONStructForAuth, error)
 	Ping() error
-	DeleteForUser(urls string, user string)
+	DeleteForUser(inputCh chan middleware.ChanDelete)
 }
 
 //MEMORY PART//
@@ -98,7 +98,7 @@ func (m *Memory) Ping() error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(urls string, user string) {
+func (m *Memory) DeleteForUser(inputCh chan middleware.ChanDelete) {
 }
 
 //FILE PART//
@@ -194,7 +194,7 @@ func (f *File) Ping() error {
 	return errors.New("there is no connection to DB")
 }
 
-func (f *File) DeleteForUser(urls string, user string) {
+func (f *File) DeleteForUser(inputCh chan middleware.ChanDelete) {
 }
 
 //DATABASE PART//
@@ -368,10 +368,14 @@ func (db *Database) SearchID(url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(urls string, user string) {
-	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
+func (db *Database) DeleteForUser(inputCh chan middleware.ChanDelete) {
+	st := <-inputCh
+
+	urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
 		"'", "", -1), "\"", "", -1)
+	log.Println(fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
+		schema, table, st.User, urls))
 	sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
-		schema, table, user, urls)
+		schema, table, st.User, urls)
 	db.ConnPool.Exec(db.CTX, sql)
 }

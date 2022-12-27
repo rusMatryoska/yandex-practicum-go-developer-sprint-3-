@@ -216,7 +216,10 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
-func (sh StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	sh.mw.MU.Lock()
+	defer sh.mw.MU.Unlock()
+
 	user := r.Context().Value(m.UserIDKey{}).(string)
 	if user == "" {
 		user = m.GetCookie(r, m.CookieUserID)
@@ -230,7 +233,11 @@ func (sh StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) 
 	} else {
 		w.WriteHeader(http.StatusAccepted)
 	}
-	sh.storage.DeleteForUser(string(urls), user)
+
+	st := m.ChanDelete{User: user, URLS: string(urls)}
+	sh.mw.CH <- st
+
+	//sh.storage.DeleteForUser(string(urls), user)
 }
 
 func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {

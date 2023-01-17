@@ -27,14 +27,17 @@ func main() {
 		err      error
 		server   = flag.String("a", os.Getenv("SERVER_ADDRESS"), "server address")
 		baseURL  = flag.String("b", os.Getenv("BASE_URL"), "base URL")
-		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "server address")
+		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "file location")
 		connStr  = flag.String("d", os.Getenv("DATABASE_DSN"), "connection url for DB")
 	)
 	flag.Parse()
 
-	if *server == "" || *baseURL == "" {
+	if *server == "" {
 		*server = "localhost:8080"
-		*baseURL = "http://" + *server + "/"
+	}
+
+	if *baseURL == "" {
+		*baseURL = "http://localhost:8080/"
 	}
 
 	if len(strings.Split(*server, ":")) != 2 {
@@ -57,11 +60,11 @@ func main() {
 		DBItem := &storage.Database{
 			BaseURL:   *baseURL,
 			DBConnURL: *connStr,
-			CTX:       context.Background(),
 		}
 		var dbErrorConnect error
 
-		pool, err := DBItem.GetDBConnection()
+		ctx := context.Background()
+		pool, err := DBItem.GetDBConnection(ctx)
 
 		if err != nil {
 			log.Println(err)

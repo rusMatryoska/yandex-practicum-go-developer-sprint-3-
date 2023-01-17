@@ -25,6 +25,8 @@ var (
 	SecretKey    = GenerateRandom(16)
 )
 
+type UserIDKey struct{}
+
 type SignInStruct struct {
 	UserID string `json:"user_id"`
 }
@@ -162,7 +164,7 @@ func (s *MiddlewareStruct) CheckAuth(next http.Handler) http.Handler {
 			http.SetCookie(w, cookieUserID)
 		}
 
-		ctx := context.WithValue(r.Context(), "user", UserID)
+		ctx := context.WithValue(r.Context(), UserIDKey{}, UserID)
 
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)

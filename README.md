@@ -10,7 +10,7 @@
     go build -o shortener *.go
 ```
 ```
-    /usr/local/shortenertest/statictest -test.v  -binary-path=cmd/shortener/static
+    /usr/local/shortenertest/shortenertest -test.v  -binary-path=cmd/shortener/static
     /usr/local/shortenertest/shortenertest -test.v -test.run=^TestIteration1$ -binary-path=/home/victoria/Desktop/yandex_practicum_increments/yandex-practicum-go-developer-sprint-3/cmd/shortener/shortener
     /usr/local/shortenertest/shortenertest -test.v -test.run=^TestIteration9$ -binary-path=/home/victoria/Desktop/yandex_practicum_increments/yandex-practicum-go-developer-sprint-3/cmd/shortener/shortener -source-path=.
 ```

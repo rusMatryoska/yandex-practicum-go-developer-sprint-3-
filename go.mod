@@ -1,4 +1,4 @@
-module github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3
+module github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4
 
 go 1.18
 

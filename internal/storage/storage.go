@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -19,6 +20,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
+	DeleteForUser(inputCh chan middleware.ChanDelete)
 }
 
 //MEMORY PART//
@@ -98,6 +100,9 @@ func (m *Memory) GetAllURLForUser(ctx context.Context, user string) ([]middlewar
 
 func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
+}
+
+func (m *Memory) DeleteForUser(inputCh chan middleware.ChanDelete) {
 }
 
 //FILE PART//
@@ -194,6 +199,9 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
+func (f *File) DeleteForUser(inputCh chan middleware.ChanDelete) {
+}
+
 //DATABASE PART//
 
 type Database struct {
@@ -246,34 +254,40 @@ func (db *Database) AddURL(ctx context.Context, url string, user string) (string
 	}
 }
 
-func (db *Database) SearchURL(ctx context.Context, id int) (string, error) {
+func (db *Database) SearchURL(id int) (string, error) {
 	var url string
+	var actual bool
 
-	row, err := db.ConnPool.Query(ctx, "select full_url from public.storage where id = $1", id)
-
+	query := fmt.Sprintf("select full_url, actual from %s.%s where id = %v", schema, table, id)
+	row, err := db.GetRows(query)
 	if err != nil {
 		return "", err
 	}
 	defer row.Close()
-
 	for row.Next() {
 		value, err := row.Values()
 		if err != nil {
 			return "", err
 		}
-
 		if value[0] == nil {
 			url = ""
 		} else {
 			url = value[0].(string)
 		}
+
+		if value[1] == nil {
+			actual = true
+		} else {
+			actual = value[1].(bool)
+		}
+
 	}
 
-	if err := row.Err(); err != nil {
-		return "", err
+	if !actual {
+		return url, middleware.ErrGone
+	} else {
+		return url, nil
 	}
-
-	return url, nil
 
 }
 
@@ -352,4 +366,16 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 	return id, nil
 
+}
+
+func (db *Database) DeleteForUser(inputCh chan middleware.ChanDelete) {
+	st := <-inputCh
+
+	urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
+		"'", "", -1), "\"", "", -1)
+	log.Println(fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
+		schema, table, st.User, urls))
+	sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
+		schema, table, st.User, urls)
+	db.ConnPool.Exec(db.CTX, sql)
 }

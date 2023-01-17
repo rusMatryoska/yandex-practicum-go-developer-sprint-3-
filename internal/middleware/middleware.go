@@ -5,13 +5,12 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gofrs/uuid"
 	"log"
 	"net/http"
-	"os"
+	"sync"
 )
 
 const (
@@ -22,6 +21,7 @@ const (
 var (
 	ErrConflict  = errors.New(`409 Conflict`)
 	ErrNoContent = errors.New(`204 No Content`)
+	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
 )
 
@@ -35,6 +35,8 @@ type MiddlewareStruct struct {
 	SecretKey []byte
 	BaseURL   string
 	Server    string
+	MU        sync.Mutex
+	CH        chan ChanDelete
 }
 
 type JSONStructForAuth struct {
@@ -66,6 +68,11 @@ type JSONBatchResponse struct {
 	ShortenURL    string `json:"short_url"`
 }
 
+type ChanDelete struct {
+	User string
+	URLS string
+}
+
 func GenerateRandom(size int) []byte {
 	b := make([]byte, size)
 	_, err := rand.Read(b)
@@ -90,29 +97,29 @@ func SetSign(id string, key []byte) []byte {
 	return h.Sum(nil)
 }
 
-func CreateFile(filePath string) {
-	f, err := os.Create(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-}
-
-func InitMapByJSON(filePath string) []JSONStruct {
-	jsonString, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	targets := []JSONStruct{}
-
-	err = json.Unmarshal(jsonString, &targets)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return targets
-
-}
+//func CreateFile(filePath string) {
+//	f, err := os.Create(filePath)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer f.Close()
+//}
+//
+//func InitMapByJSON(filePath string) []JSONStruct {
+//	jsonString, err := os.ReadFile(filePath)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	targets := []JSONStruct{}
+//
+//	err = json.Unmarshal(jsonString, &targets)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	return targets
+//
+//}
 
 type StorageError struct {
 	Label string

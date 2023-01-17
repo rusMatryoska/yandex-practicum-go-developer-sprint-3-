@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
-	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"io"
 	"log"
 	"net/http"
@@ -222,6 +222,30 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
+func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	sh.mw.MU.Lock()
+	defer sh.mw.MU.Unlock()
+
+	user := r.Context().Value(m.UserIDKey{}).(string)
+	if user == "" {
+		user = m.GetCookie(r, m.CookieUserID)
+	}
+
+	urls, err := io.ReadAll(r.Body)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+
+	st := m.ChanDelete{User: user, URLS: string(urls)}
+	sh.mw.CH <- st
+
+	//sh.storage.DeleteForUser(string(urls), user)
+}
+
 func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 
 	router := mux.NewRouter()
@@ -239,6 +263,8 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 	router.HandleFunc("/ping", handlers.PingDB).Methods("GET")
 	router.HandleFunc("/{id}", handlers.GetURLHandler).Methods("GET")
 	router.HandleFunc("/api/user/urls", handlers.GetAllURLsHandler).Methods("GET")
+
+	router.HandleFunc("/api/user/urls", handlers.DeleteHandler).Methods("DELETE")
 
 	return router
 }

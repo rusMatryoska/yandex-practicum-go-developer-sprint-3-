@@ -222,6 +222,32 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
+func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	sh.mw.MU.Lock()
+	defer sh.mw.MU.Unlock()
+
+	user := r.Context().Value(m.UserIDKey{}).(string)
+	if user == "" {
+		user = m.GetCookie(r, m.CookieUserID)
+	}
+
+	urls, err := io.ReadAll(r.Body)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusAccepted)
+	}
+
+	st := make(chan m.ChanDelete)
+	//st := m.ChanDelete{User: user, URLS: string(urls)}
+	//sh.mw.CH <- st
+	st <- m.ChanDelete{User: user, URLS: string(urls)}
+	sh.mw.CH = append(sh.mw.CH, st)
+
+}
+
 func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 
 	router := mux.NewRouter()
@@ -239,6 +265,8 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 	router.HandleFunc("/ping", handlers.PingDB).Methods("GET")
 	router.HandleFunc("/{id}", handlers.GetURLHandler).Methods("GET")
 	router.HandleFunc("/api/user/urls", handlers.GetAllURLsHandler).Methods("GET")
+
+	router.HandleFunc("/api/user/urls", handlers.DeleteHandler).Methods("DELETE")
 
 	return router
 }

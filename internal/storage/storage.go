@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -19,6 +20,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
+	DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete)
 }
 
 //MEMORY PART//
@@ -98,6 +100,9 @@ func (m *Memory) GetAllURLForUser(ctx context.Context, user string) ([]middlewar
 
 func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
+}
+
+func (m *Memory) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
 }
 
 //FILE PART//
@@ -194,6 +199,9 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
+func (f *File) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+}
+
 //DATABASE PART//
 
 type Database struct {
@@ -233,7 +241,7 @@ func (db *Database) AddURL(ctx context.Context, url string, user string) (string
 	var newID int64
 
 	row := db.ConnPool.QueryRow(ctx,
-		"INSERT INTO public.storage (full_url, user_id) VALUES ($1, $2) RETURNING id", url, user)
+		"INSERT INTO public.storage (full_url, user_id, actual) VALUES ($1, $2, $3) RETURNING id", url, user, true)
 	if err := row.Scan(&newID); err != nil {
 		id, err := db.SearchID(ctx, url)
 		if err == nil {
@@ -351,5 +359,40 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 	}
 
 	return id, nil
+
+}
+
+func (db *Database) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+	//st := <-inputCh
+	//
+	//urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
+	//	"'", "", -1), "\"", "", -1)
+	//sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
+	//	schema, table, st.User, urls)
+	//db.ConnPool.Exec(db.CTX, sql)
+
+	go func() {
+		wg := &sync.WaitGroup{}
+
+		for _, inputCh := range inputChs {
+			wg.Add(1)
+
+			go func(ch chan middleware.ChanDelete) {
+				defer wg.Done()
+				for item := range ch {
+					urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
+						"'", "", -1), "\"", "", -1)
+
+					_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
+					if err != nil {
+						log.Println(err)
+					}
+				}
+			}(inputCh)
+		}
+
+		wg.Wait()
+
+	}()
 
 }

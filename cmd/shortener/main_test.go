@@ -1,9 +1,9 @@
 package main
 
 import (
-	h "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/handlers"
-	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	h "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"

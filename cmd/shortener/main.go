@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
@@ -11,14 +12,15 @@ import (
 	"os"
 	"strings"
 
-	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/handlers"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 )
 
 const (
-	command = "up"
-	dir     = "internal/migrations"
+	command    = "up"
+	dir        = "internal/migrations"
+	bufferChan = 10
 )
 
 func main() {
@@ -27,17 +29,14 @@ func main() {
 		err      error
 		server   = flag.String("a", os.Getenv("SERVER_ADDRESS"), "server address")
 		baseURL  = flag.String("b", os.Getenv("BASE_URL"), "base URL")
-		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "file location")
+		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "server address")
 		connStr  = flag.String("d", os.Getenv("DATABASE_DSN"), "connection url for DB")
 	)
 	flag.Parse()
 
-	if *server == "" {
+	if *server == "" || *baseURL == "" {
 		*server = "localhost:8080"
-	}
-
-	if *baseURL == "" {
-		*baseURL = "http://localhost:8080/"
+		*baseURL = "http://" + *server + "/"
 	}
 
 	if len(strings.Split(*server, ":")) != 2 {
@@ -52,6 +51,7 @@ func main() {
 		SecretKey: middleware.SecretKey,
 		BaseURL:   *baseURL,
 		Server:    *server,
+		CH:        make([]chan middleware.ChanDelete, 0, bufferChan),
 	}
 
 	if *connStr != "" {
@@ -60,11 +60,11 @@ func main() {
 		DBItem := &storage.Database{
 			BaseURL:   *baseURL,
 			DBConnURL: *connStr,
+			CTX:       context.Background(),
 		}
 		var dbErrorConnect error
 
-		ctx := context.Background()
-		pool, err := DBItem.GetDBConnection(ctx)
+		pool, err := DBItem.GetDBConnection()
 
 		if err != nil {
 			log.Println(err)
@@ -95,6 +95,13 @@ func main() {
 			}
 		}
 		st = storage.Storage(DBItem)
+
+		//go func() {
+		//	st.DeleteForUser(mwItem.CH)
+		//}()
+		for v := range st.DeleteForUser(mwItem.CH) {
+			fmt.Println(v)
+		}
 
 	} else if *connStr == "" && *filePath != "" {
 		log.Println("WARNING: saving will be done through file.")
@@ -135,3 +142,39 @@ func main() {
 	}
 
 }
+
+//
+//package main
+//
+//import "fmt"
+//
+//const workersCount = 10
+//
+//func main() {
+//	inputCh := make(chan int)
+//
+//	// генерируем входные значения и кладём в inputCh
+//	go func() {
+//		for i := 0; i < 100; i++ {
+//			for j := 0; j < 120; j++ {
+//				inputCh <- i * j
+//			}
+//		}
+//
+//		close(inputCh)
+//	}()
+//
+//	// здесь fanOut
+//	fanOutChs := fanOut(inputCh, workersCount)
+//	workerChs := make([]chan int, 0, workersCount)
+//	for _, fanOutCh := range fanOutChs {
+//		workerCh := make(chan int)
+//		newWorker(fanOutCh, workerCh)
+//		workerChs = append(workerChs, workerCh)
+//	}
+//
+//	// здесь fanIn
+//	for v := range fanIn(workerChs...) {
+//		fmt.Println(v)
+//	}
+//}

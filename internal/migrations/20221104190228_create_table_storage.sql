@@ -5,7 +5,8 @@ SELECT 'up SQL query';
 CREATE TABLE IF NOT EXISTS storage (
                          id SERIAL PRIMARY KEY,
                          full_url text,
-                         user_id text NULL
+                         user_id text NULL,
+                         actual bool NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS  index_name ON public.storage USING btree (full_url);
 -- +goose Down

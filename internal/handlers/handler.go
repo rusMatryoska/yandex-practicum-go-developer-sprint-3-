@@ -186,11 +186,19 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "ID parameter must be Integer type", http.StatusBadRequest)
 		return
 	}
+
 	ctx := r.Context()
 	url, err := sh.storage.SearchURL(ctx, id)
+	log.Println(err)
 	if err != nil {
-		http.Error(w, "There is no URL with this ID", http.StatusNotFound)
-		return
+		if errors.Is(m.NewStorageError(m.ErrGone, "410"), err) {
+			w.WriteHeader(http.StatusGone)
+			w.Write([]byte(url))
+			return
+		} else {
+			http.Error(w, "There is no URL with this ID", http.StatusNotFound)
+			return
+		}
 	} else {
 		w.Header().Set("Location", url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -240,11 +248,16 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusAccepted)
 	}
 
-	st := make(chan m.ChanDelete)
+	ctx := r.Context()
+	sh.storage.DeleteForUser(ctx, user, string(urls))
+
+	//st := make(chan m.ChanDelete)
+
 	//st := m.ChanDelete{User: user, URLS: string(urls)}
 	//sh.mw.CH <- st
-	st <- m.ChanDelete{User: user, URLS: string(urls)}
-	sh.mw.CH = append(sh.mw.CH, st)
+
+	//st <- m.ChanDelete{User: user, URLS: string(urls)}
+	//sh.mw.CH = append(sh.mw.CH, st)
 
 }
 

@@ -98,13 +98,6 @@ func main() {
 		}
 		st = storage.Storage(DBItem)
 
-		//go func() {
-		//	st.DeleteForUser(mwItem.CH)
-		//}()
-		//for v := range st.DeleteForUser(mwItem.CH) {
-		//	fmt.Println(v)
-		//}
-
 	} else if *connStr == "" && *filePath != "" {
 		log.Println("WARNING: saving will be done through file.")
 

@@ -20,7 +20,8 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
-	DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete)
+	//DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete)
+	DeleteForUser(ctx context.Context, user string, urls string)
 }
 
 //MEMORY PART//
@@ -102,7 +103,10 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+//func (m *Memory) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+//}
+
+func (m *Memory) DeleteForUser(ctx context.Context, user string, urls string) {
 }
 
 //FILE PART//
@@ -199,7 +203,10 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (f *File) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+//func (f *File) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+//}
+
+func (f *File) DeleteForUser(ctx context.Context, user string, urls string) {
 }
 
 //DATABASE PART//
@@ -255,9 +262,12 @@ func (db *Database) AddURL(ctx context.Context, url string, user string) (string
 }
 
 func (db *Database) SearchURL(ctx context.Context, id int) (string, error) {
-	var url string
+	var (
+		url    string
+		actual bool
+	)
 
-	row, err := db.ConnPool.Query(ctx, "select full_url from public.storage where id = $1", id)
+	row, err := db.ConnPool.Query(ctx, "select full_url, actual from public.storage where id = $1", id)
 
 	if err != nil {
 		return "", err
@@ -275,14 +285,23 @@ func (db *Database) SearchURL(ctx context.Context, id int) (string, error) {
 		} else {
 			url = value[0].(string)
 		}
+
+		if value[1] == nil {
+			actual = true
+		} else {
+			actual = value[1].(bool)
+		}
 	}
 
 	if err := row.Err(); err != nil {
 		return "", err
 	}
 
-	return url, nil
-
+	if !actual {
+		return url, middleware.ErrGone
+	} else {
+		return url, nil
+	}
 }
 
 func (db *Database) GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error) {
@@ -362,37 +381,48 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
-	//st := <-inputCh
-	//
-	//urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
-	//	"'", "", -1), "\"", "", -1)
-	//sql := fmt.Sprintf("UPDATE %s.%s SET actual=false WHERE user_id = '%s' and id in %s",
-	//	schema, table, st.User, urls)
-	//db.ConnPool.Exec(db.CTX, sql)
+//func (db *Database) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
+//	var st = <-inputChs
+//	urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
+//		"'", "", -1), "\"", "", -1)
+//	_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", st.User, urls)
+//	if err != nil {
+//		log.Println(err)
+//	}
+//
+//	//go func() {
+//	//	wg := &sync.WaitGroup{}
+//	//
+//	//	for _, inputCh := range inputChs {
+//	//		wg.Add(1)
+//	//
+//	//		go func(ch chan middleware.ChanDelete) {
+//	//			defer wg.Done()
+//	//			for item := range ch {
+//	//				urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
+//	//					"'", "", -1), "\"", "", -1)
+//	//
+//	//				_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
+//	//				if err != nil {
+//	//					log.Println(err)
+//	//				}
+//	//			}
+//	//		}(inputCh)
+//	//	}
+//	//
+//	//	wg.Wait()
+//	//
+//	//}()
+//
+//}
 
-	go func() {
-		wg := &sync.WaitGroup{}
-
-		for _, inputCh := range inputChs {
-			wg.Add(1)
-
-			go func(ch chan middleware.ChanDelete) {
-				defer wg.Done()
-				for item := range ch {
-					urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
-						"'", "", -1), "\"", "", -1)
-
-					_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
-					if err != nil {
-						log.Println(err)
-					}
-				}
-			}(inputCh)
-		}
-
-		wg.Wait()
-
-	}()
-
+func (db *Database) DeleteForUser(ctx context.Context, user string, urls string) {
+	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
+		"'", "", -1), "\"", "", -1)
+	log.Println(urls)
+	log.Println(user)
+	_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = $1 and id in $2", user, urls)
+	if err != nil {
+		log.Println(err)
+	}
 }

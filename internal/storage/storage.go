@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
 	"log"
 	"os"
 	"strconv"

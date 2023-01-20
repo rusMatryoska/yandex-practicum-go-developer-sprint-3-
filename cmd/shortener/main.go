@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
 	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
@@ -30,6 +31,7 @@ func main() {
 		baseURL  = flag.String("b", os.Getenv("BASE_URL"), "base URL")
 		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "file location")
 		connStr  = flag.String("d", os.Getenv("DATABASE_DSN"), "connection url for DB")
+		wg       sync.WaitGroup
 	)
 	flag.Parse()
 
@@ -131,7 +133,8 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
-	go st.DeleteForUser(context.Background(), mwItem.CH)
+	go st.DeleteForUser(context.Background(), wg, mwItem.CH)
+	wg.Wait()
 
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1],
 		handlers.NewRouter(st, *mwItem)); err != http.ErrServerClosed {

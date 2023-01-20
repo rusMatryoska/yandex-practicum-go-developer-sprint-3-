@@ -252,6 +252,7 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		"'", "", -1), "\"", "", -1)
 	listID := strings.Split(urlsTo, ",")
 
+	//TODO err
 	sh.mw.CH <- m.ItemDelete{User: user, ListID: listID}
 
 }

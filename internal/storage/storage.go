@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -20,8 +19,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
-	//DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete)
-	DeleteForUser(ctx context.Context, user string, urls string)
+	DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete)
 }
 
 //MEMORY PART//
@@ -103,10 +101,7 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-//func (m *Memory) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
-//}
-
-func (m *Memory) DeleteForUser(ctx context.Context, user string, urls string) {
+func (m *Memory) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 }
 
 //FILE PART//
@@ -203,10 +198,7 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-//func (f *File) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
-//}
-
-func (f *File) DeleteForUser(ctx context.Context, user string, urls string) {
+func (f *File) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 }
 
 //DATABASE PART//
@@ -381,50 +373,45 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-//func (db *Database) DeleteForUser(ctx context.Context, inputChs ...chan middleware.ChanDelete) {
-//	var st = <-inputChs
-//	urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(st.URLS, "]", ")", -1), "[", "(", -1),
-//		"'", "", -1), "\"", "", -1)
-//	_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", st.User, urls)
-//	if err != nil {
-//		log.Println(err)
-//	}
-//
-//	//go func() {
-//	//	wg := &sync.WaitGroup{}
-//	//
-//	//	for _, inputCh := range inputChs {
-//	//		wg.Add(1)
-//	//
-//	//		go func(ch chan middleware.ChanDelete) {
-//	//			defer wg.Done()
-//	//			for item := range ch {
-//	//				urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
-//	//					"'", "", -1), "\"", "", -1)
-//	//
-//	//				_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
-//	//				if err != nil {
-//	//					log.Println(err)
-//	//				}
-//	//			}
-//	//		}(inputCh)
-//	//	}
-//	//
-//	//	wg.Wait()
-//	//
-//	//}()
-//
-//}
-
-func (db *Database) DeleteForUser(ctx context.Context, user string, urls string) {
-	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", "", -1), "[", "", -1),
-		"'", "", -1), "\"", "", -1)
-	s := strings.Split(urls, ",")
-
-	for _, i := range s {
-		_, err := db.ConnPool.Exec(ctx, "UPDATE public.storage SET actual=false WHERE id =$1", i)
-		if err != nil {
-			log.Println(err)
+func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
+	for {
+		select {
+		case item, ok := <-inputCh:
+			if !ok {
+				return
+			}
+			log.Println(item)
+			_, err := db.ConnPool.Exec(ctx,
+				"UPDATE public.storage SET actual=false WHERE user_id = '5de9d17c-edcf-4337-b89d-1316e55bcca6' and id in (1,2) ")
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
+
+//go func() {
+//	wg := &sync.WaitGroup{}
+//
+//	for _, inputCh := range inputChs {
+//		wg.Add(1)
+//
+//		go func(ch chan middleware.ChanDelete) {
+//			defer wg.Done()
+//			for item := range ch {
+//				urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
+//					"'", "", -1), "\"", "", -1)
+//
+//				_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
+//				if err != nil {
+//					log.Println(err)
+//				}
+//			}
+//		}(inputCh)
+//	}
+//
+//	wg.Wait()
+//
+//}()
+
+//}

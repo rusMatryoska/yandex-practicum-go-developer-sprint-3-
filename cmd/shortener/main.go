@@ -131,6 +131,8 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
+	go st.DeleteForUser(context.Background(), mwItem.CH)
+
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1],
 		handlers.NewRouter(st, *mwItem)); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)

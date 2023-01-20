@@ -374,15 +374,17 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 }
 
 func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
+	sql := ""
 	for {
 		select {
 		case item, ok := <-inputCh:
 			if !ok {
 				return
 			}
-			log.Println(item)
-			_, err := db.ConnPool.Exec(ctx,
-				"UPDATE public.storage SET actual=false WHERE user_id = '5de9d17c-edcf-4337-b89d-1316e55bcca6' and id in (1,2) ")
+
+			sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
+			log.Println(sql)
+			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
 			}

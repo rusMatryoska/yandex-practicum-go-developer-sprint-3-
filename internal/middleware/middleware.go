@@ -25,6 +25,7 @@ var (
 	ErrNoContent = errors.New(`204 No Content`)
 	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
+	BatchSize    = 3
 )
 
 type UserIDKey struct{}
@@ -72,7 +73,7 @@ type JSONBatchResponse struct {
 
 type ItemDelete struct {
 	User   string
-	ListID []string
+	ListID string
 }
 
 func GenerateRandom(size int) []byte {

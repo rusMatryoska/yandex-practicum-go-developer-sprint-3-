@@ -53,7 +53,7 @@ func main() {
 		SecretKey: middleware.SecretKey,
 		BaseURL:   *baseURL,
 		Server:    *server,
-		CH:        make([]chan middleware.ChanDelete, 0, bufferChan),
+		CH:        make(chan middleware.ItemDelete, bufferChan),
 	}
 
 	if *connStr != "" {

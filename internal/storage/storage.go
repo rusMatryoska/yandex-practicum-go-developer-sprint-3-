@@ -417,12 +417,14 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 //}
 
 func (db *Database) DeleteForUser(ctx context.Context, user string, urls string) {
-	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", ")", -1), "[", "(", -1),
+	urls = strings.Replace(strings.Replace(strings.Replace(strings.Replace(urls, "]", "", -1), "[", "", -1),
 		"'", "", -1), "\"", "", -1)
-	log.Println(urls)
-	log.Println(user)
-	_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = $1 and id in $2", user, urls)
-	if err != nil {
-		log.Println(err)
+	s := strings.Split(urls, ",")
+
+	for _, i := range s {
+		_, err := db.ConnPool.Exec(ctx, "UPDATE public.storage SET actual=false WHERE id =$1", i)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }

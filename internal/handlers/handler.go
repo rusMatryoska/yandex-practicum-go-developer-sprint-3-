@@ -248,16 +248,11 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusAccepted)
 	}
 
-	ctx := r.Context()
-	sh.storage.DeleteForUser(ctx, user, string(urls))
+	urlsTo := strings.Replace(strings.Replace(strings.Replace(strings.Replace(string(urls), "]", "", -1), "[", "", -1),
+		"'", "", -1), "\"", "", -1)
+	listID := strings.Split(urlsTo, ",")
 
-	//st := make(chan m.ChanDelete)
-
-	//st := m.ChanDelete{User: user, URLS: string(urls)}
-	//sh.mw.CH <- st
-
-	//st <- m.ChanDelete{User: user, URLS: string(urls)}
-	//sh.mw.CH = append(sh.mw.CH, st)
+	sh.mw.CH <- m.ItemDelete{User: user, ListID: listID}
 
 }
 

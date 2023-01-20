@@ -38,7 +38,7 @@ type MiddlewareStruct struct {
 	BaseURL   string
 	Server    string
 	MU        sync.Mutex
-	CH        []chan ChanDelete
+	CH        chan ItemDelete
 }
 
 type JSONStructForAuth struct {
@@ -70,9 +70,9 @@ type JSONBatchResponse struct {
 	ShortenURL    string `json:"short_url"`
 }
 
-type ChanDelete struct {
-	User string
-	URLS string
+type ItemDelete struct {
+	User   string
+	ListID []string
 }
 
 func GenerateRandom(size int) []byte {

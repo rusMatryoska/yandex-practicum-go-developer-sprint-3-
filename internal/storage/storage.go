@@ -374,21 +374,22 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 }
 
 func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
+	wg := &sync.WaitGroup{}
+
 	sql := ""
 	size := 0
 	for {
 		select {
 		case <-ctx.Done():
-			_, err := db.ConnPool.Exec(ctx, sql)
-			if err != nil {
-				log.Println(err)
-			}
+			return
 		case item, ok := <-inputCh:
 			if !ok {
+				wg.Add(1)
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
 				}
+				wg.Done()
 				return
 			}
 
@@ -396,14 +397,18 @@ func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.I
 				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
 				size = size + 1
 			} else {
+				wg.Add(1)
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
 				}
+				wg.Done()
 				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
 				size = 0
 			}
 
 		}
 	}
+	wg.Wait()
+	close(inputCh)
 }

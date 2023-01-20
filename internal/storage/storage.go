@@ -398,7 +398,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputC
 				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
 				size = size + 1
 			} else {
-				wg.Add(1)
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)

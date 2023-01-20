@@ -375,45 +375,35 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 	sql := ""
+	size := 0
 	for {
 		select {
-		case item, ok := <-inputCh:
-			if !ok {
-				return
-			}
-
-			sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
-			log.Println(sql)
+		case <-ctx.Done():
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
 			}
+		case item, ok := <-inputCh:
+			if !ok {
+				_, err := db.ConnPool.Exec(ctx, sql)
+				if err != nil {
+					log.Println(err)
+				}
+				return
+			}
+
+			if size < middleware.BatchSize {
+				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
+				size = size + 1
+			} else {
+				_, err := db.ConnPool.Exec(ctx, sql)
+				if err != nil {
+					log.Println(err)
+				}
+				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
+				size = 0
+			}
+
 		}
 	}
 }
-
-//go func() {
-//	wg := &sync.WaitGroup{}
-//
-//	for _, inputCh := range inputChs {
-//		wg.Add(1)
-//
-//		go func(ch chan middleware.ChanDelete) {
-//			defer wg.Done()
-//			for item := range ch {
-//				urls := strings.Replace(strings.Replace(strings.Replace(strings.Replace(item.URLS, "]", ")", -1), "[", "(", -1),
-//					"'", "", -1), "\"", "", -1)
-//
-//				_, err := db.ConnPool.Query(ctx, "UPDATE public.storage SET actual=false WHERE user_id = '$1' and id in $2 ", item.User, urls)
-//				if err != nil {
-//					log.Println(err)
-//				}
-//			}
-//		}(inputCh)
-//	}
-//
-//	wg.Wait()
-//
-//}()
-
-//}

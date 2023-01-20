@@ -25,7 +25,7 @@ var (
 	ErrNoContent = errors.New(`204 No Content`)
 	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
-	BatchSize    = 3
+	BatchSize    = 2
 )
 
 type UserIDKey struct{}

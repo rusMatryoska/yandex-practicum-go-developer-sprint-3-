@@ -133,7 +133,8 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
-	go st.DeleteForUser(context.Background(), wg, mwItem.CH)
+	wg.Add(1)
+	go st.DeleteForUser(context.Background(), &wg, mwItem.CH)
 	wg.Wait()
 
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1],

@@ -19,7 +19,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
-	DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputCh chan middleware.ItemDelete)
+	DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete)
 }
 
 //MEMORY PART//
@@ -101,7 +101,7 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(_ context.Context, _ sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (m *Memory) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
 }
 
 //FILE PART//
@@ -198,7 +198,7 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (f *File) DeleteForUser(_ context.Context, _ sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (f *File) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
 }
 
 //DATABASE PART//
@@ -373,9 +373,7 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputCh chan middleware.ItemDelete) {
-
-	wg.Add(1)
+func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
 
 	sql := ""
 	size := 0
@@ -383,6 +381,7 @@ func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputC
 		select {
 		case <-ctx.Done():
 			wg.Done()
+			close(inputCh)
 			return
 		case item, ok := <-inputCh:
 			if !ok {
@@ -391,6 +390,8 @@ func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputC
 				if err != nil {
 					log.Println(err)
 				}
+				wg.Done()
+				close(inputCh)
 				return
 			}
 
@@ -408,6 +409,4 @@ func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputC
 
 		}
 	}
-
-	close(inputCh)
 }

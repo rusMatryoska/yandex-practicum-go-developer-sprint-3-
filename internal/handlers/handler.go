@@ -256,7 +256,7 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
-func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
+func NewRouter(storage s.Storage, mw m.MiddlewareStruct) mux.Router {
 
 	router := mux.NewRouter()
 	router.Use(mw.CheckAuth)
@@ -276,5 +276,5 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 
 	router.HandleFunc("/api/user/urls", handlers.DeleteHandler).Methods("DELETE")
 
-	return router
+	return *router
 }

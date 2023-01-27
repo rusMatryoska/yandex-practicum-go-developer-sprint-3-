@@ -135,10 +135,10 @@ func main() {
 
 	wg.Add(1)
 	go st.DeleteForUser(context.Background(), &wg, mwItem.CH)
-	wg.Wait()
+	go wg.Wait()
 
-	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1],
-		handlers.NewRouter(st, *mwItem)); err != http.ErrServerClosed {
+	srv := handlers.NewRouter(st, *mwItem)
+	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1], &srv); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 	}
 

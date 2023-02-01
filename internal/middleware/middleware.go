@@ -38,7 +38,7 @@ type MiddlewareStruct struct {
 	SecretKey []byte
 	BaseURL   string
 	Server    string
-	MU        sync.Mutex
+	MU        *sync.Mutex
 	CH        chan ItemDelete
 }
 

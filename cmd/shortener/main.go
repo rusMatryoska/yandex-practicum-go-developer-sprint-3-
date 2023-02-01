@@ -6,15 +6,13 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
+	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"sync"
-
-	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
-	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 )
 
 const (
@@ -31,7 +29,6 @@ func main() {
 		baseURL  = flag.String("b", os.Getenv("BASE_URL"), "base URL")
 		filePath = flag.String("f", os.Getenv("FILE_STORAGE_PATH"), "file location")
 		connStr  = flag.String("d", os.Getenv("DATABASE_DSN"), "connection url for DB")
-		wg       sync.WaitGroup
 	)
 	flag.Parse()
 
@@ -133,9 +130,9 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
-	go st.DeleteForUser(context.Background(), &wg, mwItem.CH)
+	go st.DeleteForUser(context.Background(), mwItem.CH)
 
-	srv := handlers.NewRouter(st, *mwItem)
+	srv := handlers.NewRouter(st, mwItem)
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1], &srv); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 	}

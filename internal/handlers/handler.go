@@ -256,14 +256,14 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
-func NewRouter(storage s.Storage, mw m.MiddlewareStruct) mux.Router {
+func NewRouter(storage s.Storage, mw *m.MiddlewareStruct) mux.Router {
 
 	router := mux.NewRouter()
 	router.Use(mw.CheckAuth)
 
 	handlers := StorageHandlers{
 		storage: storage,
-		mw:      &mw,
+		mw:      mw,
 	}
 
 	router.HandleFunc("/", handlers.PostAddURLHandler).Methods("POST")

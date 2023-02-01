@@ -132,7 +132,7 @@ func main() {
 
 	go st.DeleteForUser(context.Background(), mwItem.CH)
 
-	srv := handlers.NewRouter(st, *mwItem)
+	srv := handlers.NewRouter(st, mwItem)
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1], &srv); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 	}

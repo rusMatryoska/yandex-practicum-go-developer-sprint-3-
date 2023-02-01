@@ -16,7 +16,7 @@ import (
 
 type StorageHandlers struct {
 	storage s.Storage
-	mw      m.MiddlewareStruct
+	mw      *m.MiddlewareStruct
 }
 
 func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
@@ -263,7 +263,7 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) mux.Router {
 
 	handlers := StorageHandlers{
 		storage: storage,
-		mw:      mw,
+		mw:      &mw,
 	}
 
 	router.HandleFunc("/", handlers.PostAddURLHandler).Methods("POST")

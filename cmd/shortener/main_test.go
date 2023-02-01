@@ -47,7 +47,7 @@ func TestRouter(t *testing.T) {
 
 	r := h.NewRouter(s.Storage(storageItem), *mwItem)
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(&r)
 	defer ts.Close()
 
 	status, body := testRequest(t, ts, http.MethodGet, "/1", "")

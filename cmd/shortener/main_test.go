@@ -45,7 +45,7 @@ func TestRouter(t *testing.T) {
 		Server:    "localhost:8080",
 	}
 
-	r := h.NewRouter(s.Storage(storageItem), *mwItem)
+	r := h.NewRouter(s.Storage(storageItem), mwItem)
 
 	ts := httptest.NewServer(&r)
 	defer ts.Close()

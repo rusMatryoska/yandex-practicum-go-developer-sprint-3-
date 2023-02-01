@@ -400,22 +400,24 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 				if err != nil {
 					log.Println(err)
 				}
+				wg.Done()
 				return
 			}
 
 			if size < middleware.BatchSize {
-				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
-				size = size + 1
+				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
+				size = size + item.SizeList
 			} else {
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
+				} else {
+					size = 0
 				}
-				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.ListID + ";"
-				size = 0
+				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
+				size = size + item.SizeList
 			}
 
 		}
 	}
-	wg.Done()
 }

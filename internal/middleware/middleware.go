@@ -73,8 +73,9 @@ type JSONBatchResponse struct {
 }
 
 type ItemDelete struct {
-	User   string
-	ListID string
+	User     string
+	StringID string
+	SizeList int
 }
 
 func GenerateRandom(size int) []byte {

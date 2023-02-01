@@ -248,10 +248,12 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusAccepted)
 	}
 
-	listID := strings.Replace(strings.Replace(strings.Replace(strings.Replace(string(urls), "]", ")", -1), "[", "(", -1),
+	stringID := strings.Replace(strings.Replace(strings.Replace(strings.Replace(string(urls), "]", ")", -1), "[", "(", -1),
 		"'", "", -1), "\"", "", -1)
 
-	sh.mw.CH <- m.ItemDelete{User: user, ListID: listID}
+	listID := strings.Split(strings.Replace(strings.Replace(stringID, "(", "", -1), ")", "", -1), ",")
+
+	sh.mw.CH <- m.ItemDelete{User: user, StringID: stringID, SizeList: len(listID)}
 
 }
 

@@ -40,7 +40,7 @@ type MiddlewareStruct struct {
 	Server    string
 	MU        sync.Mutex
 	CH        chan ItemDelete
-	WG        sync.WaitGroup
+	WG        *sync.WaitGroup
 }
 
 type JSONStructForAuth struct {

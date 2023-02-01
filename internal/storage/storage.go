@@ -400,7 +400,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 				if err != nil {
 					log.Println(err)
 				}
-				wg.Done()
 				return
 			}
 
@@ -418,4 +417,5 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 
 		}
 	}
+	wg.Done()
 }

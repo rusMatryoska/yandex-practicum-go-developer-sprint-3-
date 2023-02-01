@@ -133,7 +133,7 @@ func main() {
 	}
 
 	mwItem.WG.Add(1)
-	go st.DeleteForUser(context.Background(), *mwItem.WG, mwItem.CH)
+	go st.DeleteForUser(context.Background(), mwItem.WG, mwItem.CH)
 
 	go func() {
 		mwItem.WG.Wait()

@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type Storage interface {
@@ -19,7 +20,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
-	DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputCh chan middleware.ItemDelete)
+	DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete)
 }
 
 //MEMORY PART//
@@ -101,7 +102,7 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(_ context.Context, _ sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (m *Memory) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
 }
 
 //FILE PART//
@@ -198,7 +199,7 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (f *File) DeleteForUser(_ context.Context, _ sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (f *File) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
 }
 
 //DATABASE PART//
@@ -373,18 +374,24 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(ctx context.Context, wg sync.WaitGroup, inputCh chan middleware.ItemDelete) {
+func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
 
 	sql := ""
 	size := 0
 	for {
+		timer := time.NewTimer(time.Second * 30)
 		select {
+		case <-timer.C:
+			_, err := db.ConnPool.Exec(ctx, sql)
+			if err != nil {
+				log.Println(err)
+			}
+			return
 		case <-ctx.Done():
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
 			}
-			wg.Done()
 			return
 		case item, ok := <-inputCh:
 			if !ok {

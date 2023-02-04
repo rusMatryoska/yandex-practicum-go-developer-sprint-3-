@@ -62,7 +62,7 @@ func (m *Memory) SearchURL(_ context.Context, id int) (string, error) {
 	if m.IDURL[id] != "" {
 		return m.IDURL[id], nil
 	} else {
-		return "", errors.New("no URL with this ID")
+		return "", middleware.ErrGone
 	}
 
 }

@@ -434,6 +434,7 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 		case item, ok := <-inputCh:
 			log.Println("case item, ok := <-inputCh")
 			if !ok {
+				log.Println(sql)
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)

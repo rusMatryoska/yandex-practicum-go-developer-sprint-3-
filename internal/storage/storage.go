@@ -412,15 +412,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 		defer ticker.Stop()
 
 		select {
-		case <-ticker.C:
-			log.Println("case <-ticker.C")
-			_, err := db.ConnPool.Exec(ctx, sql)
-			if err != nil {
-				log.Println(err)
-			} else {
-				log.Println(sql)
-			}
-			sql = ""
 		case <-ctx.Done():
 			log.Println("case ctx.Done()")
 			if sql != "" {
@@ -432,8 +423,18 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 				}
 			}
 			return
+		case <-ticker.C:
+			log.Println("case <-ticker.C")
+			_, err := db.ConnPool.Exec(ctx, sql)
+			if err != nil {
+				log.Println(err)
+			} else {
+				log.Println(sql)
+			}
+			sql = ""
 		case item, ok := <-inputCh:
 			log.Println("case item, ok := <-inputCh")
+			log.Println(sql)
 			if !ok {
 				if sql != "" {
 					_, err := db.ConnPool.Exec(ctx, sql)

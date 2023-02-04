@@ -379,14 +379,16 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 	sql := ""
 	size := 0
 	for {
-		timer := time.NewTimer(time.Second * 30)
+
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+
 		select {
-		case <-timer.C:
+		case <-ticker.C:
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
 			}
-			return
 		case <-ctx.Done():
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
@@ -401,7 +403,7 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 					log.Println(err)
 				}
 				wg.Done()
-				return
+
 			}
 
 			if size < middleware.BatchSize {

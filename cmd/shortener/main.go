@@ -19,7 +19,7 @@ import (
 const (
 	command    = "up"
 	dir        = "internal/migrations"
-	bufferChan = 1000
+	bufferChan = 10
 )
 
 func main() {

@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -102,7 +103,34 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (m *Memory) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case item, _ := <-inputCh:
+			ourList := strings.Split(strings.Replace(strings.Replace(strings.Replace(item.StringID, ")", "", -1), "(", "", -1), " ", "", -1), ",")
+
+			for _, v := range ourList {
+				i, _ := strconv.Atoi(v)
+				delete(m.IDURL, i)
+
+				for j := range m.URLID {
+					if m.URLID[j] == i {
+						delete(m.URLID, j)
+					}
+				}
+
+				for k, w := range m.UserURLs[item.User] {
+					if w == i {
+						copy(m.UserURLs[item.User][k:], m.UserURLs[item.User][k+1:])
+						m.UserURLs[item.User] = m.UserURLs[item.User][:len(m.UserURLs[item.User])-1]
+					}
+				}
+			}
+		}
+	}
 }
 
 //FILE PART//
@@ -412,7 +440,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 				} else {
 					log.Println(sql)
 				}
-				wg.Done()
 
 			}
 
@@ -427,8 +454,11 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 					log.Println(sql)
 					size = 0
 				}
+
 				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
 				size = size + item.SizeList
+
+				wg.Done()
 			}
 
 		}

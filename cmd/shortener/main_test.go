@@ -51,8 +51,7 @@ func TestRouter(t *testing.T) {
 	defer ts.Close()
 
 	status, body := testRequest(t, ts, http.MethodGet, "/1", "")
-	assert.Equal(t, http.StatusNotFound, status)
-	assert.Equal(t, "There is no URL with this ID\n", body)
+	assert.Equal(t, http.StatusGone, status)
 
 	status, body = testRequest(t, ts, http.MethodGet, "/a", "")
 	assert.Equal(t, http.StatusBadRequest, status)

@@ -402,7 +402,7 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
+func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
 
 	sql := ""
 	size := 0
@@ -432,6 +432,7 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 				log.Println(sql)
 			}
 			sql = ""
+			size = 0
 		case item, ok := <-inputCh:
 			log.Println("case item, ok := <-inputCh")
 			log.Println(sql)
@@ -443,6 +444,8 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 					} else {
 						log.Println(sql)
 					}
+					sql = ""
+					size = 0
 				}
 
 			}
@@ -463,7 +466,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 					sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
 					size = size + item.SizeList
 
-					wg.Done()
 				}
 			}
 

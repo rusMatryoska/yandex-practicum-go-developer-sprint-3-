@@ -50,10 +50,10 @@ func TestRouter(t *testing.T) {
 	ts := httptest.NewServer(&r)
 	defer ts.Close()
 
-	status, body := testRequest(t, ts, http.MethodGet, "/1", "")
+	status, _ := testRequest(t, ts, http.MethodGet, "/1", "")
 	assert.Equal(t, http.StatusGone, status)
 
-	status, body = testRequest(t, ts, http.MethodGet, "/a", "")
+	status, body := testRequest(t, ts, http.MethodGet, "/a", "")
 	assert.Equal(t, http.StatusBadRequest, status)
 	assert.Equal(t, "ID parameter must be Integer type\n", body)
 

@@ -385,38 +385,49 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 
 		select {
 		case <-ticker.C:
+			log.Println("case <-ticker.C")
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
+			} else {
+				log.Println(sql)
 			}
+			sql = ""
 		case <-ctx.Done():
+			log.Println("case ctx.Done()")
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
+			} else {
+				log.Println(sql)
 			}
+			sql = ""
 			return
 		case item, ok := <-inputCh:
+			log.Println("case item, ok := <-inputCh")
 			if !ok {
-
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
+				} else {
+					log.Println(sql)
 				}
 				wg.Done()
 
 			}
 
 			if size < middleware.BatchSize {
-				sql = sql + "UPDATE public.storage SET actual=false WHERE " + " id in " + item.StringID + ";"
+				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
 				size = size + item.SizeList
 			} else {
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
 				} else {
+					log.Println(sql)
 					size = 0
 				}
-				sql = "UPDATE public.storage SET actual=false WHERE " + " id in " + item.StringID + ";"
+				sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
 				size = size + item.SizeList
 			}
 

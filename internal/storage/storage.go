@@ -443,7 +443,6 @@ func (db *Database) DeleteForUser(ctx context.Context, wg *sync.WaitGroup, input
 					} else {
 						log.Println(sql)
 					}
-					sql = ""
 				}
 
 			}

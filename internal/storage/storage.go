@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 type Storage interface {
@@ -413,11 +412,10 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 	user := ""
 	IDs := ""
 
+	//ticker := time.NewTicker(10 * time.Second)
+	//defer ticker.Stop()
+
 	for {
-
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-
 		select {
 		case <-ctx.Done():
 			log.Println("case ctx.Done()")
@@ -428,15 +426,15 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 				}
 			}
 			return
-		case <-ticker.C:
-			log.Println("case <-ticker.C")
-			_, err := db.ConnPool.Exec(ctx, sql)
-			if err != nil {
-				log.Println(err)
-			}
-
-			sql = ""
-			size = 0
+		//case <-ticker.C:
+		//	log.Println("case <-ticker.C")
+		//	_, err := db.ConnPool.Exec(ctx, sql)
+		//	if err != nil {
+		//		log.Println(err)
+		//	}
+		//
+		//	sql = ""
+		//	size = 0
 
 		case item, ok := <-inputCh:
 			log.Println("case item, ok := <-inputCh")

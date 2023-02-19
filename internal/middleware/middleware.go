@@ -25,7 +25,6 @@ var (
 	ErrNoContent = errors.New(`204 No Content`)
 	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
-	BatchSize    = 10
 )
 
 type UserIDKey struct{}
@@ -40,7 +39,6 @@ type MiddlewareStruct struct {
 	Server    string
 	MU        sync.Mutex
 	CH        chan ItemDelete
-	WG        *sync.WaitGroup
 }
 
 type JSONStructForAuth struct {

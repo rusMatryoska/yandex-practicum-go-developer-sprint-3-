@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 )
 
 const (
@@ -54,7 +53,6 @@ func main() {
 		BaseURL:   *baseURL,
 		Server:    *server,
 		CH:        make(chan middleware.ItemDelete, bufferChan),
-		WG:        &sync.WaitGroup{},
 	}
 
 	if *connStr != "" {
@@ -132,13 +130,7 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
-	mwItem.WG.Add(1)
-	go st.DeleteForUser(context.Background(), mwItem.WG, mwItem.CH)
-
-	go func() {
-		mwItem.WG.Wait()
-		close(mwItem.CH)
-	}()
+	go st.DeleteForUser(context.Background(), mwItem.CH)
 
 	srv := handlers.NewRouter(st, mwItem)
 	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1], &srv); err != http.ErrServerClosed {

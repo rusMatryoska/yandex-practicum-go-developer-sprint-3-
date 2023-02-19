@@ -20,7 +20,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
-	DeleteForUser(ctx context.Context, wg *sync.WaitGroup, inputCh chan middleware.ItemDelete)
+	DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete)
 }
 
 //MEMORY PART//
@@ -102,7 +102,7 @@ func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (m *Memory) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
+func (m *Memory) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 
 	for {
 		select {
@@ -230,7 +230,7 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
-func (f *File) DeleteForUser(_ context.Context, _ *sync.WaitGroup, _ chan middleware.ItemDelete) {
+func (f *File) DeleteForUser(_ context.Context, _ chan middleware.ItemDelete) {
 }
 
 //DATABASE PART//
@@ -405,15 +405,9 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 }
 
-func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh chan middleware.ItemDelete) {
+func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 
 	sql := ""
-	size := 0
-	user := ""
-	IDs := ""
-
-	//ticker := time.NewTicker(10 * time.Second)
-	//defer ticker.Stop()
 
 	for {
 		select {
@@ -426,51 +420,18 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 				}
 			}
 			return
-		//case <-ticker.C:
-		//	log.Println("case <-ticker.C")
-		//	_, err := db.ConnPool.Exec(ctx, sql)
-		//	if err != nil {
-		//		log.Println(err)
-		//	}
-		//
-		//	sql = ""
-		//	size = 0
 
-		case item, ok := <-inputCh:
-			log.Println("case item, ok := <-inputCh")
-			user = item.User
-			IDs = item.StringIDs
+		case item, _ := <-inputCh:
 
-			if !ok {
-				if sql != "" {
-					_, err := db.ConnPool.Exec(ctx, sql)
-					if err != nil {
-						log.Println(err)
-					}
-					sql = ""
-					size = 0
+			sql = fmt.Sprintf("UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;",
+				item.User, item.StringIDs)
+
+			if sql != "" {
+				_, err := db.ConnPool.Exec(ctx, sql)
+				if err != nil {
+					log.Println(err)
 				}
 
-			}
-
-			if size < middleware.BatchSize {
-				sql = sql + fmt.Sprintf(
-					"UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;", user, IDs)
-				size = size + item.SizeList
-			} else {
-				if sql != "" {
-					_, err := db.ConnPool.Exec(ctx, sql)
-					if err != nil {
-						log.Println(err)
-					} else {
-						size = 0
-					}
-
-					sql = fmt.Sprintf(
-						"UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;", user, IDs)
-					size = size + item.SizeList
-
-				}
 			}
 
 		}

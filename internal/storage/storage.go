@@ -109,7 +109,11 @@ func (m *Memory) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh c
 		select {
 		case <-ctx.Done():
 			return
-		case item := <-inputCh:
+		case item, opened := <-inputCh:
+			if !opened {
+				return
+			}
+
 			ourList := strings.Split(strings.Replace(strings.Replace(strings.Replace(item.StringID, ")", "", -1), "(", "", -1), " ", "", -1), ",")
 
 			for _, v := range ourList {

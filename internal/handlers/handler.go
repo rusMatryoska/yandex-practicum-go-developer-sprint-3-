@@ -189,15 +189,14 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 
 	ctx := r.Context()
 	url, err := sh.storage.SearchURL(ctx, id)
-	log.Println(err)
+
 	if err != nil {
 		if errors.Is(m.NewStorageError(m.ErrGone, "410"), err) {
 			w.WriteHeader(http.StatusGone)
 			w.Write([]byte(url))
-			return
 		} else {
+			log.Println(err)
 			http.Error(w, "There is no URL with this ID", http.StatusNotFound)
-			return
 		}
 	} else {
 		w.Header().Set("Location", url)

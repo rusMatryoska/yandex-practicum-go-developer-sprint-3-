@@ -74,7 +74,7 @@ type JSONBatchResponse struct {
 
 type ItemDelete struct {
 	User      string
-	StringIDs []string
+	StringIDs string
 	SizeList  int
 }
 

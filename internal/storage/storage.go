@@ -114,7 +114,7 @@ func (m *Memory) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputCh c
 				return
 			}
 
-			ourList := strings.Split(strings.Replace(strings.Replace(strings.Replace(item.StringID, ")", "", -1), "(", "", -1), " ", "", -1), ",")
+			ourList := strings.Split(strings.Replace(strings.Replace(strings.Replace(item.StringIDs, ")", "", -1), "(", "", -1), " ", "", -1), ",")
 
 			for _, v := range ourList {
 				i, _ := strconv.Atoi(v)
@@ -410,6 +410,9 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 
 	sql := ""
 	size := 0
+	user := ""
+	IDs := ""
+
 	for {
 
 		ticker := time.NewTicker(10 * time.Second)
@@ -422,8 +425,6 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 				_, err := db.ConnPool.Exec(ctx, sql)
 				if err != nil {
 					log.Println(err)
-				} else {
-					log.Println(sql)
 				}
 			}
 			return
@@ -432,21 +433,21 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 			_, err := db.ConnPool.Exec(ctx, sql)
 			if err != nil {
 				log.Println(err)
-			} else {
-				log.Println(sql)
 			}
+
 			sql = ""
 			size = 0
+
 		case item, ok := <-inputCh:
 			log.Println("case item, ok := <-inputCh")
-			log.Println(sql)
+			user = item.User
+			IDs = item.StringIDs
+
 			if !ok {
 				if sql != "" {
 					_, err := db.ConnPool.Exec(ctx, sql)
 					if err != nil {
 						log.Println(err)
-					} else {
-						log.Println(sql)
 					}
 					sql = ""
 					size = 0
@@ -455,7 +456,8 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 			}
 
 			if size < middleware.BatchSize {
-				sql = sql + "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
+				sql = sql + fmt.Sprintf(
+					"UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;", user, IDs)
 				size = size + item.SizeList
 			} else {
 				if sql != "" {
@@ -463,11 +465,11 @@ func (db *Database) DeleteForUser(ctx context.Context, _ *sync.WaitGroup, inputC
 					if err != nil {
 						log.Println(err)
 					} else {
-						log.Println(sql)
 						size = 0
 					}
 
-					sql = "UPDATE public.storage SET actual=false WHERE user_id ='" + item.User + "' and id in " + item.StringID + ";"
+					sql = fmt.Sprintf(
+						"UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;", user, IDs)
 					size = size + item.SizeList
 
 				}

@@ -252,7 +252,7 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 
 	listID := strings.Split(strings.Replace(strings.Replace(stringID, "(", "", -1), ")", "", -1), ",")
 
-	sh.mw.CH <- m.ItemDelete{User: user, StringID: stringID, SizeList: len(listID)}
+	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: stringID, SizeList: len(listID)}
 
 }
 

@@ -413,7 +413,7 @@ func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.I
 			log.Println("case ctx.Done()")
 			return
 
-		case item, _ := <-inputCh:
+		case item := <-inputCh:
 
 			sql := fmt.Sprintf("UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;",
 				item.User, item.StringIDs)

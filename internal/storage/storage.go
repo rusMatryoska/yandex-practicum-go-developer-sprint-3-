@@ -407,31 +407,20 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 
-	sql := ""
-
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("case ctx.Done()")
-			if sql != "" {
-				_, err := db.ConnPool.Exec(ctx, sql)
-				if err != nil {
-					log.Println(err)
-				}
-			}
 			return
 
 		case item, _ := <-inputCh:
 
-			sql = fmt.Sprintf("UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;",
+			sql := fmt.Sprintf("UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;",
 				item.User, item.StringIDs)
 
-			if sql != "" {
-				_, err := db.ConnPool.Exec(ctx, sql)
-				if err != nil {
-					log.Println(err)
-				}
-
+			_, err := db.ConnPool.Exec(ctx, sql)
+			if err != nil {
+				log.Println(err)
 			}
 
 		}

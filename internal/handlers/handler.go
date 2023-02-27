@@ -198,11 +198,12 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 			log.Println(err)
 			http.Error(w, "There is no URL with this ID", http.StatusNotFound)
 		}
-	} else {
-		w.Header().Set("Location", url)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		w.Write([]byte(url))
+		return
 	}
+
+	w.Header().Set("Location", url)
+	w.WriteHeader(http.StatusTemporaryRedirect)
+	w.Write([]byte(url))
 
 }
 
@@ -239,11 +240,13 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	urls, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
 
-	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	} else {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
 	}
 

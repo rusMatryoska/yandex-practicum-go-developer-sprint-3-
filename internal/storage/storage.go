@@ -103,36 +103,34 @@ func (m *Memory) Ping(_ context.Context) error {
 
 func (m *Memory) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
 
-	//for {
-	//	select {
-	//	case <-ctx.Done():
-	//		return
-	//	case item, opened := <-inputCh:
-	//		if !opened {
-	//			return
-	//		}
-	//
-	//		ourList := strings.Split(strings.Replace(strings.Replace(strings.Replace(item.StringIDs, ")", "", -1), "(", "", -1), " ", "", -1), ",")
-	//
-	//		for _, v := range ourList {
-	//			i, _ := strconv.Atoi(v)
-	//			delete(m.IDURL, i)
-	//
-	//			for j := range m.URLID {
-	//				if m.URLID[j] == i {
-	//					delete(m.URLID, j)
-	//				}
-	//			}
-	//
-	//			for k, w := range m.UserURLs[item.User] {
-	//				if w == i {
-	//					copy(m.UserURLs[item.User][k:], m.UserURLs[item.User][k+1:])
-	//					m.UserURLs[item.User] = m.UserURLs[item.User][:len(m.UserURLs[item.User])-1]
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case item, opened := <-inputCh:
+			if !opened {
+				return
+			}
+
+			for _, v := range item.StringIDs {
+				i, _ := strconv.Atoi(v)
+				delete(m.IDURL, i)
+
+				for j := range m.URLID {
+					if m.URLID[j] == i {
+						delete(m.URLID, j)
+					}
+				}
+
+				for k, w := range m.UserURLs[item.User] {
+					if w == i {
+						copy(m.UserURLs[item.User][k:], m.UserURLs[item.User][k+1:])
+						m.UserURLs[item.User] = m.UserURLs[item.User][:len(m.UserURLs[item.User])-1]
+					}
+				}
+			}
+		}
+	}
 }
 
 //FILE PART//
@@ -413,10 +411,6 @@ func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.I
 			return
 
 		case item := <-inputCh:
-			//sql := fmt.Sprintf("UPDATE public.storage SET actual=false WHERE user_id ='%s' and id in %s;",
-			//	item.User, item.StringIDs)
-			//log.Println(sql)
-
 			_, err := db.ConnPool.Exec(ctx, "UPDATE public.storage SET actual=false WHERE user_id = $1 and id =ANY($2)", item.User, item.StringIDs)
 			if err != nil {
 				log.Println(err)

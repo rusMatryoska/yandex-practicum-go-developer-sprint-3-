@@ -332,7 +332,7 @@ func (db *Database) GetAllURLForUser(ctx context.Context, user string) ([]middle
 		returnErr      error
 	)
 
-	row, err := db.ConnPool.Query(ctx, "select id, full_url from public.storage where user_id = $1", user)
+	row, err := db.ConnPool.Query(ctx, "select id, full_url from public.storage where user_id = $1 and actual = true", user)
 
 	if err != nil {
 		return nil, err

@@ -243,7 +243,7 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 
 	urls, err := ReadBody(w, r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "error while reading body", http.StatusInternalServerError)
 		return
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -255,8 +255,8 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "unmarshall failed", http.StatusInternalServerError)
 		return
 	}
-	log.Println(IDs)
-	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: IDs, SizeList: len(IDs)}
+
+	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: IDs}
 
 }
 

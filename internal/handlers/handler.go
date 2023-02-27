@@ -231,6 +231,8 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	var IDs []string
+
 	sh.mw.MU.Lock()
 	defer sh.mw.MU.Unlock()
 
@@ -239,9 +241,7 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		user = m.GetCookie(r, m.CookieUserID)
 	}
 
-	urls, err := io.ReadAll(r.Body)
-	defer r.Body.Close()
-
+	urls, err := ReadBody(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -250,12 +250,13 @@ func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusAccepted)
 	}
 
-	stringID := strings.Replace(strings.Replace(strings.Replace(strings.Replace(string(urls), "]", ")", -1), "[", "(", -1),
-		"'", "", -1), "\"", "", -1)
-
-	listID := strings.Split(strings.Replace(strings.Replace(stringID, "(", "", -1), ")", "", -1), ",")
-
-	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: stringID, SizeList: len(listID)}
+	err = json.Unmarshal(urls, &IDs)
+	if err != nil {
+		http.Error(w, "unmarshall failed", http.StatusInternalServerError)
+		return
+	}
+	log.Println(IDs)
+	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: IDs, SizeList: len(IDs)}
 
 }
 

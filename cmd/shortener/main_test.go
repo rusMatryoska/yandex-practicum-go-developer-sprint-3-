@@ -1,9 +1,9 @@
 package main
 
 import (
-	h "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/handlers"
-	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	h "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -45,16 +45,15 @@ func TestRouter(t *testing.T) {
 		Server:    "localhost:8080",
 	}
 
-	r := h.NewRouter(s.Storage(storageItem), *mwItem)
+	r := h.NewRouter(s.Storage(storageItem), mwItem)
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(&r)
 	defer ts.Close()
 
-	status, body := testRequest(t, ts, http.MethodGet, "/1", "")
-	assert.Equal(t, http.StatusNotFound, status)
-	assert.Equal(t, "There is no URL with this ID\n", body)
+	status, _ := testRequest(t, ts, http.MethodGet, "/1", "")
+	assert.Equal(t, http.StatusGone, status)
 
-	status, body = testRequest(t, ts, http.MethodGet, "/a", "")
+	status, body := testRequest(t, ts, http.MethodGet, "/a", "")
 	assert.Equal(t, http.StatusBadRequest, status)
 	assert.Equal(t, "ID parameter must be Integer type\n", body)
 

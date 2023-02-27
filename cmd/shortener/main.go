@@ -6,19 +6,19 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
+	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/handlers"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-
-	handlers "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/handlers"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	storage "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
 )
 
 const (
-	command = "up"
-	dir     = "internal/migrations"
+	command    = "up"
+	dir        = "internal/migrations"
+	bufferChan = 1000
 )
 
 func main() {
@@ -52,6 +52,7 @@ func main() {
 		SecretKey: middleware.SecretKey,
 		BaseURL:   *baseURL,
 		Server:    *server,
+		CH:        make(chan middleware.ItemDelete, bufferChan),
 	}
 
 	if *connStr != "" {
@@ -129,8 +130,10 @@ func main() {
 		st = storage.Storage(memoryItem)
 	}
 
-	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1],
-		handlers.NewRouter(st, *mwItem)); err != http.ErrServerClosed {
+	go st.DeleteForUser(context.Background(), mwItem.CH)
+
+	srv := handlers.NewRouter(st, mwItem)
+	if err = http.ListenAndServe(":"+strings.Split(*server, ":")[1], &srv); err != http.ErrServerClosed {
 		log.Fatalf("HTTP server ListenAndServe Error: %v", err)
 	}
 

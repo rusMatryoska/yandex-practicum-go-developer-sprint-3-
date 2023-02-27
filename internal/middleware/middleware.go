@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 var (
 	ErrConflict  = errors.New(`409 Conflict`)
 	ErrNoContent = errors.New(`204 No Content`)
+	ErrGone      = errors.New(`410 Gone`)
 	SecretKey    = GenerateRandom(16)
 )
 
@@ -35,6 +37,8 @@ type MiddlewareStruct struct {
 	SecretKey []byte
 	BaseURL   string
 	Server    string
+	MU        sync.Mutex
+	CH        chan ItemDelete
 }
 
 type JSONStructForAuth struct {
@@ -64,6 +68,11 @@ type JSONBatchRequest struct {
 type JSONBatchResponse struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortenURL    string `json:"short_url"`
+}
+
+type ItemDelete struct {
+	User      string
+	StringIDs []string
 }
 
 func GenerateRandom(size int) []byte {
@@ -170,5 +179,3 @@ func (s *MiddlewareStruct) CheckAuth(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-//type RequestIDKey struct{}

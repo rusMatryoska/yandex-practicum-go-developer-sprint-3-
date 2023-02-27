@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
-	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
-	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/storage"
+	m "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
+	s "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/storage"
 	"io"
 	"log"
 	"net/http"
@@ -16,7 +16,7 @@ import (
 
 type StorageHandlers struct {
 	storage s.Storage
-	mw      m.MiddlewareStruct
+	mw      *m.MiddlewareStruct
 }
 
 func ReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
@@ -186,16 +186,24 @@ func (sh StorageHandlers) GetURLHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "ID parameter must be Integer type", http.StatusBadRequest)
 		return
 	}
+
 	ctx := r.Context()
 	url, err := sh.storage.SearchURL(ctx, id)
+
 	if err != nil {
-		http.Error(w, "There is no URL with this ID", http.StatusNotFound)
+		if errors.Is(m.NewStorageError(m.ErrGone, "410"), err) {
+			w.WriteHeader(http.StatusGone)
+			w.Write([]byte(url))
+		} else {
+			log.Println(err)
+			http.Error(w, "There is no URL with this ID", http.StatusNotFound)
+		}
 		return
-	} else {
-		w.Header().Set("Location", url)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		w.Write([]byte(url))
 	}
+
+	w.Header().Set("Location", url)
+	w.WriteHeader(http.StatusTemporaryRedirect)
+	w.Write([]byte(url))
 
 }
 
@@ -222,7 +230,37 @@ func (sh StorageHandlers) GetAllURLsHandler(w http.ResponseWriter, r *http.Reque
 
 }
 
-func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
+func (sh *StorageHandlers) DeleteHandler(w http.ResponseWriter, r *http.Request) {
+	var IDs []string
+
+	sh.mw.MU.Lock()
+	defer sh.mw.MU.Unlock()
+
+	user := r.Context().Value(m.UserIDKey{}).(string)
+	if user == "" {
+		user = m.GetCookie(r, m.CookieUserID)
+	}
+
+	urls, err := ReadBody(w, r)
+	if err != nil {
+		http.Error(w, "error while reading body", http.StatusInternalServerError)
+		return
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+	}
+
+	err = json.Unmarshal(urls, &IDs)
+	if err != nil {
+		http.Error(w, "unmarshall failed", http.StatusInternalServerError)
+		return
+	}
+
+	sh.mw.CH <- m.ItemDelete{User: user, StringIDs: IDs}
+
+}
+
+func NewRouter(storage s.Storage, mw *m.MiddlewareStruct) mux.Router {
 
 	router := mux.NewRouter()
 	router.Use(mw.CheckAuth)
@@ -240,5 +278,7 @@ func NewRouter(storage s.Storage, mw m.MiddlewareStruct) *mux.Router {
 	router.HandleFunc("/{id}", handlers.GetURLHandler).Methods("GET")
 	router.HandleFunc("/api/user/urls", handlers.GetAllURLsHandler).Methods("GET")
 
-	return router
+	router.HandleFunc("/api/user/urls", handlers.DeleteHandler).Methods("DELETE")
+
+	return *router
 }

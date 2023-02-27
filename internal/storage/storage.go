@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
-	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-3/internal/middleware"
+	middleware "github.com/rusMatryoska/yandex-practicum-go-developer-sprint-4/internal/middleware"
 	"log"
 	"os"
 	"strconv"
@@ -19,6 +19,7 @@ type Storage interface {
 	SearchURL(ctx context.Context, id int) (string, error)
 	GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error)
 	Ping(ctx context.Context) error
+	DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete)
 }
 
 //MEMORY PART//
@@ -59,7 +60,7 @@ func (m *Memory) SearchURL(_ context.Context, id int) (string, error) {
 	if m.IDURL[id] != "" {
 		return m.IDURL[id], nil
 	} else {
-		return "", errors.New("no URL with this ID")
+		return "", middleware.ErrGone
 	}
 
 }
@@ -98,6 +99,38 @@ func (m *Memory) GetAllURLForUser(ctx context.Context, user string) ([]middlewar
 
 func (m *Memory) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
+}
+
+func (m *Memory) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case item, opened := <-inputCh:
+			if !opened {
+				return
+			}
+
+			for _, v := range item.StringIDs {
+				i, _ := strconv.Atoi(v)
+				delete(m.IDURL, i)
+
+				for j := range m.URLID {
+					if m.URLID[j] == i {
+						delete(m.URLID, j)
+					}
+				}
+
+				for k, w := range m.UserURLs[item.User] {
+					if w == i {
+						copy(m.UserURLs[item.User][k:], m.UserURLs[item.User][k+1:])
+						m.UserURLs[item.User] = m.UserURLs[item.User][:len(m.UserURLs[item.User])-1]
+					}
+				}
+			}
+		}
+	}
 }
 
 //FILE PART//
@@ -194,6 +227,9 @@ func (f *File) Ping(_ context.Context) error {
 	return errors.New("there is no connection to DB")
 }
 
+func (f *File) DeleteForUser(_ context.Context, _ chan middleware.ItemDelete) {
+}
+
 //DATABASE PART//
 
 type Database struct {
@@ -233,7 +269,7 @@ func (db *Database) AddURL(ctx context.Context, url string, user string) (string
 	var newID int64
 
 	row := db.ConnPool.QueryRow(ctx,
-		"INSERT INTO public.storage (full_url, user_id) VALUES ($1, $2) RETURNING id", url, user)
+		"INSERT INTO public.storage (full_url, user_id, actual) VALUES ($1, $2, $3) RETURNING id", url, user, true)
 	if err := row.Scan(&newID); err != nil {
 		id, err := db.SearchID(ctx, url)
 		if err == nil {
@@ -247,9 +283,12 @@ func (db *Database) AddURL(ctx context.Context, url string, user string) (string
 }
 
 func (db *Database) SearchURL(ctx context.Context, id int) (string, error) {
-	var url string
+	var (
+		url    string
+		actual bool
+	)
 
-	row, err := db.ConnPool.Query(ctx, "select full_url from public.storage where id = $1", id)
+	row, err := db.ConnPool.Query(ctx, "select full_url, actual from public.storage where id = $1", id)
 
 	if err != nil {
 		return "", err
@@ -267,14 +306,23 @@ func (db *Database) SearchURL(ctx context.Context, id int) (string, error) {
 		} else {
 			url = value[0].(string)
 		}
+
+		if value[1] == nil {
+			actual = true
+		} else {
+			actual = value[1].(bool)
+		}
 	}
 
 	if err := row.Err(); err != nil {
 		return "", err
 	}
 
-	return url, nil
-
+	if !actual {
+		return url, middleware.ErrGone
+	} else {
+		return url, nil
+	}
 }
 
 func (db *Database) GetAllURLForUser(ctx context.Context, user string) ([]middleware.JSONStructForAuth, error) {
@@ -284,7 +332,7 @@ func (db *Database) GetAllURLForUser(ctx context.Context, user string) ([]middle
 		returnErr      error
 	)
 
-	row, err := db.ConnPool.Query(ctx, "select id, full_url from public.storage where user_id = $1", user)
+	row, err := db.ConnPool.Query(ctx, "select id, full_url from public.storage where user_id = $1 and actual = true", user)
 
 	if err != nil {
 		return nil, err
@@ -352,4 +400,22 @@ func (db *Database) SearchID(ctx context.Context, url string) (int, error) {
 
 	return id, nil
 
+}
+
+func (db *Database) DeleteForUser(ctx context.Context, inputCh chan middleware.ItemDelete) {
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("case ctx.Done()")
+			return
+
+		case item := <-inputCh:
+			_, err := db.ConnPool.Exec(ctx, "UPDATE public.storage SET actual=false WHERE user_id = $1 and id =ANY($2)", item.User, item.StringIDs)
+			if err != nil {
+				log.Println(err)
+			}
+
+		}
+	}
 }
